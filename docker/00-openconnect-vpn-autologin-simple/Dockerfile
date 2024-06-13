@@ -10,16 +10,25 @@ WORKDIR /root
 ARG proxy_branch=master
 # TODO: Change to main/master after resolving issue.
 ARG proxy_commit=d0347549a4ec308b67f39d24d76691c4d4b1da6a
-RUN git clone https://github.com/serjs/socks5-server && cd socks5-server && git checkout $proxy_commit && go build .
+RUN \
+	git clone https://github.com/serjs/socks5-server && \
+	cd socks5-server && \
+	git checkout $proxy_commit && \
+	go build .
 
 
 FROM fedora:latest AS fedora-base
 # Simple All update/upgrade/install deps step.
 # crypto-policies-scripts is the helper for enabling legacy OpenSSL algorithms (it may be required for some AnyConnect hosts)
+# dnf clean all cleans DNF caches to reduce the layer size.
 # See https://github.com/dotnet/dotnet-docker/issues/4332 for details.
-RUN dnf upgrade --refresh -y && dnf install openconnect crypto-policies-scripts -y && update-crypto-policies --set LEGACY && dnf clean all
+RUN \
+	dnf upgrade --refresh -y && \
+	dnf install openconnect crypto-policies-scripts -y && \
+	update-crypto-policies --set LEGACY && \
+	dnf clean all
 
-# Our container API for connecting
+# Our container API for connecting to VPN
 ARG proxy_port
 ARG vpn_host
 ARG vpn_user
@@ -39,7 +48,9 @@ COPY --from=proxy-build /root/socks5-server/socks5-server .
 EXPOSE $PROXY_PORT
 
 # Run openconnect with our password and run proxy.
-CMD cat openconnect-passwd.txt | openconnect --background -u $VPN_USER --authgroup $VPN_AUTHGROUP $VPN_HOST && ./socks5-server
+CMD \
+	cat openconnect-passwd.txt | openconnect --background -u $VPN_USER --authgroup $VPN_AUTHGROUP $VPN_HOST && \
+	./socks5-server
 # CMD openconnect -u $VPN_USER --script-tun --script \
 #    "ocproxy -D $PROXY_PORT -g -k 36000 " \
 #    $VPN_HOST 
