@@ -1,11 +1,16 @@
 # This dockerfile requires the openconnect-passwd.txt file in folder. It may be any pseudofile if need.
+LABEL version=0.2 vpn_type=openconnect
 FROM golang:latest AS proxy-build
 # Build SOCKS5 proxy for a controlled access to VPN (exposed by PROXY_PORT env)
 
 WORKDIR /root
 
-RUN git clone https://github.com/serjs/socks5-server && cd socks5-server && go build . 
-
+# d0347549a4ec308b67f39d24d76691c4d4b1da6a is the last builable commit for now (2024-06-13.
+# See https://github.com/serjs/socks5-server/issues/61 .
+ARG proxy_branch=master
+# TODO: Change to main/master after resolving issue.
+ARG proxy_commit=d0347549a4ec308b67f39d24d76691c4d4b1da6a
+RUN git clone https://github.com/serjs/socks5-server && cd socks5-server && git checkout $proxy_commit && go build .
 
 
 FROM fedora:latest AS fedora-base
